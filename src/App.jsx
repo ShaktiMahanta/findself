@@ -1,17 +1,54 @@
-import "./index.css"; // or the path to your CSS file
+import "./index.css";
 import { useState } from "react";
 
 function App() {
   const [yourName, setYourName] = useState("");
   const [crushName, setCrushName] = useState("");
   const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleCheck = () => {
-    if (!yourName || !crushName) {
+  const handleCheck = async () => {
+    if (!yourName.trim() || !crushName.trim()) {
       setResult("Please enter both names 💬");
-    } else {
-      const score = Math.floor(Math.random() * 100);
-      setResult(`💘 Compatibility Score: ${score}%`);
+      return;
+    }
+
+    setLoading(true);
+    setResult("");
+
+    try {
+      const response = await fetch("http://localhost:8081/api/findSelf", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtYW10YUBnbWFpbC5jb20iLCJpYXQiOjE3NTk2ODc4NTcsImV4cCI6MTc1OTY4OTI5N30.W0EwkVIMdY0FvVHvMrHA1bqEpOpCbCfc_zmh_rQXpss"}`, // Include the token here
+          // Authorization:
+          //   "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtYW10YUBnbWFpbC5jb20iLCJpYXQiOjE3NTk1ODk2OTUsImV4cCI6MTc1OTU5MTEzNX0.ocuAhxXY3DZXEXo9rNSYUe-80FdgyZ-XgDRJSRmmPQA", // Replace STATIC_TOKEN_HERE with your static token
+        },
+        body: JSON.stringify({ yourName, crushName }),
+      });
+
+      console.log(response);
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log(data);
+      // const score =
+      //   typeof data.score === "number"
+      //     ? data.score
+      //     : Math.floor(Math.random() * 100);
+      setResult(
+        `💘 Your Relationship with your crush is : ${data.relationship}`
+      );
+    } catch (error) {
+      console.error("Compatibility check failed:", error);
+      setResult("🚫 Something went wrong. Please try again later.");
+      //setResult(`🚫 Error: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -37,7 +74,7 @@ function App() {
 
         <div className="mb-4">
           <label className="block text-sm font-semibold text-gray-700 mb-1">
-            CRUSH NAME
+            Crush Name
           </label>
           <input
             type="text"
@@ -50,9 +87,12 @@ function App() {
 
         <button
           onClick={handleCheck}
-          className="bg-gradient-to-r from-green-400 to-blue-500 text-white font-bold py-2 px-6 rounded-full shadow-md hover:scale-105 transition-transform"
+          disabled={loading}
+          className={`bg-gradient-to-r from-green-400 to-blue-500 text-white font-bold py-2 px-6 rounded-full shadow-md transition-transform ${
+            loading ? "opacity-50 cursor-not-allowed" : "hover:scale-105"
+          }`}
         >
-          Check
+          {loading ? "Checking..." : "Check"}
         </button>
 
         {result && (
